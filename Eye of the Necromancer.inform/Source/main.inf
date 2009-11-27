@@ -1,0 +1,1963 @@
+! ------------------------------------------------------------------------------
+!
+!  The Eye of the Necromancer
+!       by Ian Webb
+!       (c)1987 Spidersoft Computer Logic
+!
+!  Updated and converted to Inform format
+!  February 2003 (c)2003 retained.
+!
+! ------------------------------------------------------------------------------
+
+
+Constant Story "THE EYE OF THE NECROMANCER";
+Constant Headline "^A resurrected puzzle crawl from the golden age.^
+					Copyright (c)1987,2003 by Ian Webb & Spidersoft Computer Logic.^";
+
+Constant MAX_CARRIED = 6;
+Constant MAX_SCORE = 100;		! Percentile thingies.
+
+Include "Parser";
+Include "VerbLib";
+
+! ------------------------------------------------------------------------------
+!
+!  The outside world - the forest
+!
+! ------------------------------------------------------------------------------
+
+Class	Forest
+  with	name	'forest' 'trees' 'tree' 'undergrowth' 'leaf' 'leaves'
+  				'path' 'paths' 'branch' 'branches',
+  		u_to	"The branches start too high above the ground to provide any purchase.",
+  		before	[; Climb: <<Go u_obj>>; ],
+  		cant_go
+  			"The trees crowd together too thickly to make progress in that direction";
+
+Forest	dark_forest		"Dark Forest"
+  with	name	'dark' 'musty' 'bird' 'birds' 'silence',
+  		description
+  			"You are standing in a dark and musty forest. The undergrowth is deep
+  			making it hard to walk. A feeling of inexplicable dread pervades the
+  			atmosphere around here. Not a sound can be heard, and not even the 
+  			cries of birds disturb the ominous silence. Dark forest paths lead east
+  			and southeast.",
+  		e_to 	open_area,
+  		se_to	low_rise,
+  has	light;	
+
+Forest	open_area		"Open Area"
+  with	name	'open' 'area' 'track' 'tracks',
+  		description
+  			"You are standing in an open area between the trees. Dim forest paths
+  			lead away east and west, while little-used tracks head off in the
+  			southerly directions.",
+  		ne_to	high_cliff,
+  		e_to	thick_forest,
+  		se_to	bright_forest,
+  		s_to	low_rise,
+  		w_to	dark_forest,
+  has	light;
+  
+Forest	thick_forest	"Thick Forest"
+  with	name	'thick' 'bright' 'daylight',
+  		description
+			"You are standing in a thick part of the forest. Pushing your way through
+			the branches you can see paths leading away east, west and several other
+			directions to the south. A path leads out of the forest into the bright
+			daylight to the north.",
+		n_to	high_cliff,
+		e_to	blasted_clearing,
+		s_to	bright_forest,
+		sw_to	low_rise,
+		w_to	open_area,
+  has	light;
+
+Forest	low_rise		"Low Rise"
+  with	name	'low' 'rise' 'light' 'gap',
+  		description
+  			"You are standing on a low rise in the forest. Trees cover most if it.
+  			Paths lead into the forest via several directions. Light gets in through
+  			the gap where the trees meet far above your head.",
+  		n_to	open_area,
+  		ne_to	thick_forest,
+  		e_to	bright_forest,
+  		se_to	clearing,
+  		nw_to	dark_forest,
+  		u_to	climbable_tree,
+  has	light;
+
+Object	-> climbable_tree	"large climbable tree"
+  with	name 'large' 'climbable' 'tree' 'trees' 'branch',
+  		initial
+  			"A large climbable tree reaches upward from the highest point of the rise.",
+  		description
+  			"Probably oak. I was never much of a botanist.",
+  		door_to	tree,
+  		door_dir	u_to,
+  has	static door open;
+
+Forest	bright_forest	"Bright Area"
+  with	name	'bright' 'unnatural' ' unnaturally' 'clearing' 'clearings' 'atmosphere',
+  		description
+  			"You are standing in what is an unnaturally well lit area of trees. The
+  			atmosphere here is strange. It is as bright as full daylight, despite
+  			the fact that the trees block out all of the natural light. The clearings
+  			to the south and northeast couldn't provide this much light. Paths also
+  			wind away in many other directions.",
+  		n_to	open_area,
+  		ne_to	blasted_clearing,
+  		se_to	by_cottage,
+  		s_to	clearing,
+  		w_to	low_rise,
+  		nw_to	open_area,
+  has	light;
+  
+Object	-> carved_tree	"ancient oak tree"
+  with	name	'tree' 'trees' 'ancient' 'carved' 'old' 'oak',
+  		description
+  			"Carved on one of the trees is the legend:^   GFQF JT SGF NBHJD XPQC: IFYFAFK",
+  has	scenery light;
+ 
+Forest	blasted_clearing	"Blasted Clearing"
+  with	description
+  			"You have entered a small clearing in the forest. The area has been cleared
+  			by fire. The whole place is blackened and burnt. It looks as if the
+  			Necromancer has been using the place for target practice! Paths lead back
+  			into the forest west and southwest. A path leads to a cliff edge northwest.",
+  		sw_to	bright_forest,
+  		w_to	thick_forest,
+  		nw_to	high_cliff,
+  has	light;
+
+Object ->	leaves	"pile of leaves"
+  with	name 'leaves' 'pile' 'drift',
+  		initial
+  			"The wind has swept the autumnal fall of leaves into a neat pile.",
+  		before [;
+  			Take:
+  				"The leaves flutter away from you in the blustery wind.";
+  			Examine:
+  				if (self has general) {
+					move glove to blasted_clearing;
+					give self ~general;
+					"Whilst you are rustling through the leaves, a small silk glove
+					falls out.";
+				}
+			Search:
+				<<Examine self>>;
+  			],
+  has	static general;
+  
+Object	glove		"silk glove"
+  with	name 'silk' 'glove' 'delicate' 'feminine' 'fashionable',
+  		initial
+  			"A delicate silk glove lies discarded here.",
+  		description
+  			"It is light, delicate and very feminine. Could also prove to be fashionable.",
+  has	clothing;
+
+Forest	clearing	"Clearing"
+  with	description
+  			"You are standing in a large natural clearing. Grass carpets the floor
+  			and the sun is visible in the sky above. At the far eastern end is an
+  			old cottage, which looks pretty decrepit. You could go north and northwest.",
+  		n_to	bright_forest,
+  		e_to	by_cottage,
+  		nw_to	low_rise,
+  has	light;
+
+Forest	by_cottage	"Beside Cottage"
+  with description
+  			"You are beside the cottage. It is very battered and could do with pulling
+  			down. The paint work is peeling and underneath, the plaster is cracked and
+  			beginning to crumble. The windows are broken and boarded up. Paths lead 
+  			behind the cottage to the northeast and southeast.",
+  		ne_to	behind_cottage,
+  		se_to	behind_cottage,
+  		e_to	old_door,
+  		w_to	clearing,
+  		nw_to	bright_forest,
+  has	light;
+
+Object	-> old_door "old door"
+  with	name 'old' 'cottage' 'door' 'doorway' 'battered' 'sturdy',
+  		description
+  			"Old and battered, but sturdy enough.",
+  		when_closed
+  			"The cottage door is closed.",
+  		when_open
+  			"The old cottage door stands open.",
+  		door_to [; if (self in by_cottage) return cottage; return by_cottage; ],
+  		door_dir [; if (self in by_cottage) return e_to; return w_to; ],
+  		with_key	small_key,
+  		found_in	by_cottage cottage,
+  has	static door openable lockable locked;
+  		
+Object	cottage		"Inside Cottage"
+  with	description
+  			"You are inside the old cottage. It is in pretty bad shape with peeling 
+  			plaster and lose floor-boards. Most of the thatched roof lies rotting on 
+  			the floor, the rafters broken and hanging down.",
+  		w_to	by_cottage,
+  has	light;
+
+Object	-> spinning_wheel "spinning wheel"
+  with	name 'spinning' 'wheel' 'loom',
+  		initial
+  			"A wooden spinning wheel stands in the centre of the room.",
+  		description
+  			"It looks like it's still in working order.",
+  has	static;
+
+Object	-> battered_bed	"battered bed"
+  with	name 'battered' 'bed' 'bedstead',
+  		initial
+  			"A battered bed lurks forlornly in one corner.",
+  		description
+			"Mildew and woodworm - a remarkable combination.",
+  has	static supporter enterable;
+
+Object	-> -> mattress "rotten old mattress"
+  with	name 'rotten' 'old' 'mattress',
+  		description
+  			"Absolutely rank.",
+  		before [;
+  			Drop, PutOn, ThrowAt:
+  				if (Player in behind_cottage) {
+					move mattress to smooth_cave;
+					"You suspicions are proved to be correct. It lands on the floor, there is 
+					a pause, a creak, and then a loud crash as it suddenly disappears from sight.";
+				}
+			],
+  has	supporter;
+
+Object	behind_cottage	"Dark Area"
+  with	description
+  			"You are in a dark area behind the cottage which is surrounded by forest.
+  			There is just enough light coming through the trees to see a few details.
+  			One thing that becomes clear is that the floor to the east looks very unsafe
+  			indeed. It doesn't look solid. Try going northwest or southwest.",
+  		sw_to	by_cottage,
+  		nw_to	by_cottage,
+  		e_to	"You really don't want to go that way.",
+  		cant_go
+  			"Carefully does it - northwest or southeast look much safer.",
+  has	light;
+
+Object 	-> dodgy_floor
+  with	name 'dark' 'area' 'floor' 'weak' 'unsafe' 'dodgy',
+  		description
+  		"It's hard to say quite why the floor area fills you with concern, but you wouldn't
+  		trust your weight to it for any money.",
+  		before [;
+  			PutOn:
+  				print "You gingerly place ", (the) noun, " at the edge of the area.";
+  				<<Drop noun>>;
+			],
+  has	static scenery supporter;
+
+Object	-> lamp "bicycle lamp"
+  with	name 'bicycle' 'lamp' 'light' 'battery',
+  		initial
+  			"A bicycle lamp sits on the most precarious section of the floor.",
+  		description
+  			"Engraved on the base are the words: ~Manufactured by the Phoenix company~.",
+        before [;
+        	Take:
+        		if (self in behind_cottage) {
+					print "As you stoop to take ", (the) self, " you trip and fall head over heels.
+					You crash through the weak floor and fall a very long way....^As you fall, your
+					whole life flashes before your eyes, and you can't help wishing that you reach 
+					the bottom quickly, as some of it pretty boring.... ";
+					if (mattress in smooth_cave) {
+						print "Fortunately, your fall is broken by ", (a) mattress, " at the bottom of
+						the shaft. Now wasn't that lucky!!!^";
+						move lamp to player; PlayerTo(mattress);
+						score = score +4;
+						rtrue;						
+					}
+					deadflag = true;
+					"^You hit the ground at very high speed, the force of the impact spreading
+					you over most of the surrounding area.....";
+				}
+			],
+        after [;
+            SwitchOn:
+                give self light;
+            SwitchOff:
+                give self ~light;
+            ],
+  has	switchable;
+
+Object	tree		"Halfway Up"
+  with	description
+  			"You have struggled and scrambled through branches until you find yourself
+  			halfway up a tree. The branches poke at you from all angles. It looks like
+  			you could climb a bit further without too much trouble.",
+  		u_to	treetop,
+  		d_to	low_rise,
+  		cant_go
+  			"The branches don't look safe.",
+  		after [;
+  			Drop:
+  				move noun to low_rise;
+  				print_ret (The) noun, " falls to the ground below.";
+		],
+  has	light;
+  
+Object	-> nest		"bird's nest"
+  with	name	'bird^s' 'nest',
+  		initial
+  			"Apparently abandoned, a small bird's nest sits in the branches.",
+  		description	[;
+  			print "Just the right size for small trifles. ";
+  			<<Search self>>;
+  		],
+  has	container open;
+
+Object	-> -> small_key	"small key"
+  with	name 'small' 'key';
+
+
+Object	treetop		"Treetop"
+  with	description
+  			"You have climbed to the very top of a tree. You can see the forest stretching
+  			out for miles around, and beyond that a range of snow capped mountains are
+  			visible. Pretty, isn't it? The most prominent object in your field of vision 
+  			is the castle. It's towers and spires rise above the trees and cast dark
+  			shadows.",
+  		d_to	tree,
+  		cant_go
+  			"No way but down makes sense.",
+  		after [;
+  			Drop:
+  				move noun to low_rise;
+  				print_ret (The) noun, " falls to the ground below.";
+		],
+  has	light;
+
+Object	-> wool		"clump of wool"
+  with	name	'clump' 'wool' 'sheep^s' 'fluff',
+  		initial
+  			"A clump of wool is entangled in the upper branches.",
+  		description
+  			"Might prove ewe-sful.",
+  		before [;
+  			Spin:
+  				if (glove hasnt worn) {
+					deadflag = true;
+					"You prick your finger on the spinning wheel and sleep for a hundred 
+					years. By the time you wake up, it's much too late to do anything.";
+				}
+  				if (second == spinning_wheel && spinning_wheel in location) {
+					remove wool; move thread to player;
+					score = score + 3;
+					"After a spinning of wheels, and a few minutes of frustration, you
+					find yourself in possession of a short length of woollen thread.";
+				}
+		];
+
+Forest	high_cliff	"Cliff Edge"
+  with	description
+  			"You are standing at the edge of a high cliff. Across from you is the castle.
+  			Its black bulk blocks out most of the sunlight. The drawbridge, made of solid
+  			wood, is raised. On the blank wooden wall facing you a stark notice has been
+  			nailed. In bold black print, it states:^^        SHOUT FOR ATTENDANT^^Paths 
+  			lead back into the forest south, southeast and southwest.",
+  		se_to	blasted_clearing,
+  		s_to	thick_forest,
+  		sw_to	open_area,
+  		n_to	"I don't think so.",
+  		ne_to	"I don't think so.",
+  		nw_to	"I don't think so.",
+  		before [;
+  			Shout:
+  				deadflag = true;
+  				"There is a loud creak and the drawbridge crashes down on top of you.";
+  		],
+  has	light;
+
+! ------------------------------------------------------------------------------
+!
+!  The Rock Pillar and the boulder/grate puzzle
+!
+! ------------------------------------------------------------------------------
+
+Object	smooth_cave	"Smooth Cave"
+  with	description
+  			"You are in a small, smooth cave at the bottom of an incredibly long shaft.
+  			Looking up, you can just see light, but it is faint. There is an entrance
+  			to the cave north, through which light streams.",
+  		n_to south_ofthe_needle,
+  has 	light;
+
+Object	south_ofthe_needle "South of the needle"
+  with	description
+  			"You are standing north of the entrance to a dark cave in the cliff. You 
+  			appear to be in some sort of quarry that has been excavated out of the limestone.
+  			It must be a mile deep, if it's an inch. In the centre of the quarry stands a
+  			huge needle of rock, inserted point down into the ground. You are standing just
+  			to the south of it. Rarely trodden paths lead round the rock, heading both
+  			northeast and northwest.",
+  		ne_to east_ofthe_needle,
+  		nw_to west_ofthe_needle,
+  has	light;
+  
+Object	east_ofthe_needle "East of the needle"
+  with	description
+			"You are standing to the east of the needle of rock. Here it is obvious that the force
+			required to drive the great rock into the ground was huge. The area is covered with 
+			hairline cracks, from which steam escapes from time to time. The path goes northwest
+			and southwest.",
+  		nw_to north_ofthe_needle,
+  		sw_to south_ofthe_needle,
+  has	light;
+  
+Object	-> shovel "shovel"
+  with	name 'shovel' 'spade',
+  		description
+			"Inscribed upon the handle are the words: ~Dig for victory!~";
+
+Object	west_ofthe_needle "West of the needle"
+  with	description
+			"You are standing at the west side of the needle of rock. Touching the rock here reveals
+			that every so often a shudder shakes through the whole rock, and pebbles clatter down 
+			from above. Something is definitely going on. Paths lead northeast and southeast.",
+  		ne_to north_ofthe_needle,
+  		se_to south_ofthe_needle,
+  has	light;
+
+
+  
+Object	north_ofthe_needle "North of the needle"
+  with	description
+			"You are standing to the north of the needle of rock. Someone has attacked this side 
+			with a rock breaking crew, by the looks of things. Paths lead southeast and southwest.",
+  		d_to metal_grate,
+  		se_to [; thread.breakthread(); return east_ofthe_needle; ],
+  		sw_to [; thread.breakthread(); return west_ofthe_needle; ],
+  has	light;
+
+Object	-> boulder "large boulder"
+  with	name 'boulder' 'rock' 'stone' 'large' 'big',	
+  description
+  			[;	if (self in overflow) "Apparently unscarred from its descent, it isn't going anywhere else.";
+				"The laws of physics have never been tested so rigorously.";
+ 			],
+  balanced true,
+  before [;
+		Take:
+			if (self.balanced) "Certainly the worst idea you've had today.";
+	],
+  has	static concealed;
+  		
+Object 	-> metal_grate "metal grate"
+  with	name 'metal' 'grate' 'large' 'steel' 'lock' 'heavy',
+  		initial [;
+  			print "Set into the rock at the base of the needle is a heavy iron grate. 
+  				Above it, balacing impossibly atop a 4 foot stick, is a huge boulder";
+  			if (thread.attached) {
+  				print ". A length of woollen thread is tied to the stick";
+  				if (thread in player) print ", you hold the other end";
+  					else print " and wafts gently in the breeze";
+  			}
+  			print_ret ".";
+  		],
+		description
+			"Steel bars and an ominously heavy lock.",
+  		found_in north_ofthe_needle overflow,
+  		! when_closed "There is a large metal grate set into the ground.",
+  		when_open [;
+  			print "There is a mutilated metal grate set into the ";
+  			if (self in north_ofthe_needle) "ground."; "ceiling.";
+  		],
+  		door_to	[; 
+  			if (rat_pack hasnt general) {
+				give rat_pack general;
+				StartDaemon(rat_pack);
+			}
+  			if (self in north_ofthe_needle) return overflow; return north_ofthe_needle;
+  		],
+  		door_dir	[; if (self in north_ofthe_needle) return d_to; return u_to; ],
+		with_key false,
+  has	static door openable locked;
+
+Object	-> stick "four-foot stick"
+  with	name 'stick' 'four' 'foot' 'four-foot' 'wooden' 'branch',
+  		describe [;
+			! Let the grate handle printing in initial state
+			! allows for disambiguation messages (concealed messes with these)
+  			if (boulder.balanced) rtrue;
+  		],
+  		before [;
+			Examine:
+				if (boulder.balanced) "The enormous force of the boulder causes the stick to creak audibly.";
+			Take:
+				if (boulder.balanced) {
+					deadflag = 1;
+					"You remove the stick and the boulder drops on you, killing you instantly. That's one 
+					way of taking up head banging, I suppose.";
+				}
+  			Pull:
+  				if (self in gear_hole) <<Pull gear_hole>>;
+  			],
+ 		after [;
+ 			Insert:
+ 				if (second == gear_hole && self hasnt general) {
+					give self general;
+ 					print_ret "Using incredible deduction and logic, you place ", (the) stick,
+ 						" in ", (the) gear_hole, ". You find that you have formed a lever, for all
+ 						the good it is. You could pull it, I suppose.";
+				}
+ 			];
+
+Object	thread "length of woollen thread"
+  with	name 'thread' 'string' 'length' 'woollen' 'wool',
+  		description
+  			"About 3 feet long and quite strong - nice handiwork.",
+  		describe [;
+				! Let the grate handle printing if tied to the stick but not carried
+  				if (self.attached) rtrue;
+  			],
+  		invent [; if (inventory_stage == 2 && self.attached) print " (tied to the stick)"; ],
+		before [;
+			Pull:
+				if (self.attached) {
+					deadflag = 1;
+					"The stick jerks toward you, and the boulder crashes through the grate. Shrapnel
+					files in all directions - one large piece strikes you right between the eyes.";
+				}
+			Tie:
+				if (second ~= stick) rfalse; !"That won't achieve anything.";
+				if (~~self.attached) {
+					self.attached = true;
+					"You carefully attach the thread with a granny knot.";
+				}
+				print_ret (the) self, " is already securely attached.";
+			],
+		attached false,
+		breakthread [;
+			if (self.attached && self in player) {
+				remove self;
+				boulder.balanced = false;
+				give boulder ~concealed;
+				give metal_grate open ~locked;
+				move boulder to overflow;
+				"As you leave there is a loud crashing noise. The thread snaps and blows away in the wind.";
+			}
+		];
+
+! ------------------------------------------------------------------------------
+!
+!  The sewers
+!
+! ------------------------------------------------------------------------------
+
+Object	overflow "Sewer overflow"
+  with	description
+			"You are in the overflow cave of the castle sewage system. The only way onward seems
+			to be west along (dare I even suggest it...) a disgusting, horrible, slimy, smelly 
+			sewer tunnel.",
+  		u_to metal_grate,
+  		w_to dark_tunnel,
+  has	light;
+
+Object	dark_tunnel "Dark sewer tunnel"
+  with	description
+			"You are standing in a dark sewer tunnel. The smell is close to intolerable, and what
+			you're standing in doesn't bear even thinking about. The tunnel leads west, but a 
+			slightly cleaner cave is to the east.",
+  		e_to overflow,
+  		w_to waterspout;
+  		
+Object	cramped_tunnel "Cramped tunnel"
+  with	description
+			"You are in a long cramped sewer tunnel running east to west. The walls are covered 
+			in horrible slimy stuff, and the floor is wet, making it hard to find a footing. The 
+			smell is getting worse and you nearly tripped over a loose flagstone.",
+  		e_to dark_tunnel,
+  		w_to untreated;
+
+Object	-> small_lever "small metal lever"
+  with	name 'small' 'metal' 'lever',
+  		initial
+  			"A small metal lever protrudes from the north wall.",
+  		description
+  			"It's just stuck out of the wall. It's purpose is unclear.",
+  		before [;
+  			Switchon, Switchoff, Pull, Push:
+  				<<Switchon waterspout>>;
+  			],
+  has	static;
+
+Object	waterspout "water spout"
+  with	found_in dark_tunnel untreated,
+		before [;
+  			Switchon:
+  				if (self hasnt on) give self on; else give self ~on;
+  				"There is a far off 'clunk'.";
+		],
+		door_to [;
+				if (self has on) {
+					deadflag = 1;
+					"As you enter, an incredibly powerful jet of water blasts from a hole in the ceiling,
+					smashing you to a pulp.";
+				}
+				return cramped_tunnel;
+		],
+		door_dir [; 
+			if (self in untreated) return e_to; return w_to;
+		],
+  has	static scenery door open;
+		
+Object	untreated "Untreated sewage"
+  with	description
+			"You are crawling through a sewer tunnel. You are up to your elbows in untreated 
+			sewage. Not the nicest place to be. The tunnel leads back east, widening somewhat. 
+			But, oh joy of joys: to the west the tunnel leads out into a small room.",
+  		e_to waterspout,
+  		w_to sluice_room;
+  		
+Object	sluice_room "Sluice room"
+  with	description
+			"You are standing in a small room carved out of the rock. The floor is free from gunge,
+			and the walls and ceiling are dry. A very small sewer tunnel enters through a hole in 
+			the east wall.",
+  		e_to untreated,
+  		w_to sluice_gate;
+  		
+Object	-> sluice_gate "sluice gate"
+  with	name 'sluice' 'gate' 'metal' 'rusted',
+  		description [;
+  			print "It is thickly rusted but solid. Heavy gears seem to govern its operation, ";
+  			if (stick in gear_hole)
+  				"and a four-foot wooden lever attached to the mechanism offers a method of control.";
+  			"but you can see no way of controlling it. There is a round hole in the circumference
+			of the one of the gears at the base of the mechanism.";
+		],
+  		door_to sewer_maze_1,
+  		door_dir w_to,
+  		when_closed [;
+  			print "A rusted metal sluice gate blocks any further progress west.";
+  			if (stick in gear_hole)
+  				print " A wooden lever appears to operate the gate mechanism.";
+  			print_ret "";
+  		],
+  		when_open [;
+  			print "The sluice gate has been winched up, revealing a small tunnel.";
+   			if (stick in gear_hole)
+   				" A wooden lever appears to operate the gate mechanism.";
+   			print_ret "";
+  		],
+  has	static door openable locked;
+
+Object	-> gear_hole "gear hole"
+  with	name 'gear' 'mechanism' 'round' 'hole' 'lever',
+  		description
+  			"The hole is about an inch wide and extends through the gear toward its axis.",
+  		before [;
+  			Pull:
+  				if (stick notin gear_hole)
+  					print_ret (The) gear_hole, " doesn't respond to your attempts at manipulation.";
+  				print "The machinery clanks and the sluice gate ";
+  				if (sluice_gate hasnt open) {
+					give sluice_gate open;
+					"rises, revealing a tunnel beyond.";
+				}
+				give sluice_gate ~open;
+				"descends, blocking the western tunnel.";
+			],
+		react_before [;
+  			Insert:
+  				if (second == self && noun ~= stick)
+  					print_ret (The) noun, " doesn't seem to fit in the hole.";
+  			],		
+  has	static scenery container open;
+
+Object	-> rat_pack "giant rats"
+  with	name 'rats' 'giant' 'vicious',
+  		description
+  			"Grown fat on the nameless filth of the castle sewers, these vicious monsters fill you
+  			with dread.",
+  		track sluice_room sluice_room sluice_room untreated cramped_tunnel dark_tunnel 
+  					overflow overflow overflow dark_tunnel cramped_tunnel untreated,
+  		current_loc 0,
+  		daemon [;
+  			move self to self.&track-->((++self.current_loc)%12);
+  			if (self in cramped_tunnel && waterspout has on) {
+				StopDaemon(self);
+				remove self;
+				give waterspout ~on;
+				"In the distance you hear a loud splash, squealing and then silence.";
+			}
+  			if (player in parent(self)) {
+				deadflag = 1;
+				"A pack of giant rats rush in and tear you to shreds.";
+			}
+		],
+		react_after [;
+				Go:
+				deadflag = 1;
+				"As you enter, a pack of giant rats swarm over you and rip you to pieces.";
+		],
+  has	static pluralname neuter animate;
+  			
+Class	sewer_maze
+  with	description
+			"You are in a maze of twisty sewer tunnels with exits in all directions.
+			^Irritating, isn't it?",
+  		before [; Smell: print_ret (string) self.smell;],
+  		after [;
+  			Drop:
+  				remove noun;
+  				print_ret (The) noun, " sinks into the thick slime that fills the tunnel.";
+  			default:
+  				give self ~visited;
+  				if (random(4) == 1) print "A strong blast of air hits you. The smell is so strong,
+  					it makes you feel nauseous.";
+  		],
+  		smell "Bad. But not specific.",
+  		cant_go "All but that direction, apparently";
+
+Object	sewer_maze_1 "Maze of twisty sewer pipes"
+ class	sewer_maze
+  with	smell "You can smell rotting vegetables.",
+  		n_to sewer_maze_1,
+  		ne_to sewer_maze_2,
+  		e_to sewer_maze_3,
+  		se_to sewer_maze_4,
+  		s_to sewer_maze_1,
+  		sw_to sewer_maze_2,
+  		w_to sewer_maze_3,
+  		nw_to sewer_maze_1;
+
+Object	sewer_maze_2 "Maze of twisty sewer pipes"
+ class	sewer_maze
+  with	smell "You can smell dead rats.",
+  		n_to sewer_maze_1,
+  		ne_to sewer_maze_2,
+  		e_to sluice_room,
+  		se_to sewer_maze_4,
+  		s_to sewer_maze_2,
+  		sw_to sewer_maze_3,
+  		w_to sewer_maze_2,
+  		nw_to sewer_maze_2;
+  
+Object	sewer_maze_3 "Maze of twisty sewer pipes"
+ class	sewer_maze
+  with	smell "You can smell bleach.(!)",
+  		n_to sewer_maze_2,
+  		ne_to sewer_maze_4,
+  		e_to sewer_maze_1,
+  		se_to sewer_maze_2,
+  		s_to sewer_maze_3,
+  		sw_to sewer_maze_4,
+  		w_to sewer_maze_1,
+  		nw_to sewer_maze_3;
+
+Object	sewer_maze_4 "Maze of twisty sewer pipes"
+ class	sewer_maze
+  with	smell "You can smell something totally disgusting.
+  			   ^Please excuse me while I am being sick.",
+  		n_to sewer_maze_3,
+  		ne_to orange_room,
+  		e_to sewer_maze_2,
+  		se_to sewer_maze_3,
+  		s_to sewer_maze_4,
+  		sw_to sewer_maze_1,
+  		w_to sewer_maze_2,
+  		nw_to sewer_maze_4;
+
+Object	orange_room "Orange room"
+  with	description
+			"You are in a room decorated in a tasteless shade of orange. There are only a
+			few important features in this room. One is the sewer tunnel which enters the
+			room southeast. For the others, you'll have to read the object list. So there!",
+  		s_to elevator_doors,
+  		sw_to sewer_maze_4,
+   		before [;
+  			Go:
+  				if (noun == s_obj) {
+					elevator.floor = true;
+					print "You step inside the elevator. The doors close behind you and you start to rise...
+					^^There is a quiet whirring of cables as you move upwards at quite a rate.
+					^^The elevator comes smoothly to a rest. The doors open, allowing you to view the
+					inside of the castle for the first time...^^";
+				}
+		];		
+
+
+Object	elevator_button "button"
+  with	name 'button' 'buttons',
+  		found_in orange_room elevator,
+  		initial
+  			"A small silver button is set into the wall next to the doors.",
+  		description
+  			"Above the button a small sign says ~Gutter Press~",
+  		before [;
+  			Push:
+  				if (self in orange_room) {
+					if (elevator_doors has open) "There is a soft click, but nothing happens.";
+					give elevator_doors open;
+					"There is a far-off whine. The volume increases, then there is a nearby clatter,
+					followed by a swoosh as the doors slide open to reveal a small executive elevator.";
+				}
+				"There is a soft click, but nothing happens.";
+			],  				
+  has	static;
+
+Object	elevator_doors "elevator doors"
+  with	name 'elevator' 'door' 'doors' 'sliding',
+  		found_in orange_room elevator stone_steps,
+  		door_to [;
+  			if (self in orange_room or stone_steps) return elevator;
+  			if (elevator.floor) return stone_steps; return orange_room;
+  			],
+  		door_dir [; if (self in elevator) return n_to; return s_to; ],
+  		when_closed [;
+  			print "A set of steel elevator doors occupy the ";
+  			if (self in orange_room or stone_steps) "south wall."; "north wall";
+  			],
+  		when_open [;
+  			print "The sliding doors stand open revealing ";
+  			if (self in orange_room or stone_steps) "the elevator beyond.";
+  			"a flight of stone steps, shrouded 	in mist.";
+  			], 
+ has	door static openable locked pluralname;
+
+Object	elevator "Executive elevator"
+  with	description
+			"You are standing in a plush executive elevator. The floor is thickly carpeted, and
+			there is a mirror on one wall. After you've finished admiring yourself, you might want
+			to get on with the game.",
+  		n_to elevator_doors,
+  		floor false;
+
+
+! ------------------------------------------------------------------------------
+!
+!  Inside the castle - central area
+!
+! ------------------------------------------------------------------------------
+
+Object  stone_steps "Stone Steps"
+  with	description
+  			"You are standing at the base of a flight of stone steps that rise up to the 
+  			north. A thick mist floats down the rough-hewn steps and collects at the base 
+  			around your feet.",
+		n_to star_chamber,
+		s_to elevator_doors,
+		u_to star_chamber;
+  
+Object	star_chamber "Star Shaped Chamber"
+  with	description
+  			"You are in a large chamber shaped like a five-pointed star. The ceiling is high,
+  			the walls sloping inward to form a point directly above the centre of the chamber.
+  			Each point of the star leads to a passageway of some sort. You see that you can go
+  			south, east, west, northeast and northwest. There is also an exit via a carved archway
+  			in the northern wall, at the base of the northeast and northwest points of the star.",
+  		n_to [;
+				if (white_sphere notin player)
+					"You try to go north, but some sort of force field stops you.";
+				return kaleidoscope;
+		],
+  		ne_to harbour,
+  		e_to office,
+  		s_to stone_steps,
+  		w_to smooth_corridor,
+  		nw_to ice_cavern,
+  		d_to stone_steps;
+
+Object	-> pedestal "marble pedestal"
+  with	name 'pedestal' 'marble' 'cushion' 'curtain',
+  		initial [;
+  			print "A marble pedestal stands in the very centre of the chamber";
+  			if (blue_sphere in self && blue_sphere hasnt moved) 
+  				print ". Atop it, resting on a velvet cushion, is The Blue Sphere of Fear. 
+  				Surrounding the sphere and the pedestal is a curtain of blue-green light, 
+  				which illuminates the chamber with its powerful glow";
+  			".";
+  		],
+		before [;
+			Receive:
+				if (blue_sphere hasnt moved)
+					 "The crackling energy surrounding the pedestal makes you reconsider.";
+		],
+  has	static supporter;
+  
+Object	-> -> blue_sphere "Blue Sphere of Fear"
+  with	name 'blue' 'sphere' 'fear' 'globe' 'ball',
+		article "The",
+		before [;
+			Take:
+				if (self hasnt moved) {
+					if (gauntlets hasnt worn) {
+						deadflag = true;
+						"As you touch the curtain of light, several million volts give you a bit of a 	shock.....";
+					} else {
+						give self ~concealed;
+						print "The light curtain crackles violently as your gauntleted hands pass
+							throught it, then disipates.^";
+					}
+				}
+		],
+  has	concealed;
+
+Object white_sphere "White Sphere of Power"
+	with	name 'white' 'sphere' 'globe' 'ball';
+
+! Gauntlet code goes here as they are needed to take the blue sphere
+! Left starts in the armoury, right in the ante-room
+Class Gauntlet
+  with name 'gauntlet' 'power' 'of',
+       article "the",
+       react_before [;
+           if (self in gauntlets) rfalse;
+           if (parent(right_gauntlet) ~= parent(left_gauntlet)) rfalse;
+           if (left_gauntlet has worn && right_gauntlet hasnt worn) rfalse;
+           if (left_gauntlet hasnt worn && right_gauntlet has worn) rfalse;
+           if (left_gauntlet has worn) give gauntlets worn;
+           else give gauntlets ~worn;
+           move gauntlets to parent(right_gauntlet);
+           move right_gauntlet to gauntlets; move left_gauntlet to gauntlets;
+           give right_gauntlet ~worn; give left_gauntlet ~worn;
+       ],
+       before [;
+           if (self notin gauntlets) rfalse;
+           move left_gauntlet to parent(gauntlets);
+           move right_gauntlet to parent(gauntlets);
+           if (gauntlets has worn) {
+               give left_gauntlet worn; give right_gauntlet worn;
+           }
+           remove gauntlets;
+       ],
+  has  clothing;
+  
+Object gauntlets "Gauntlets of Power"
+  with name 'gauntlets' 'power' 'of',
+       article "The",
+  has  clothing transparent;  
+
+Object	kaleidoscope "Kaleidoscope"
+  with	description
+  			"You are standing in a very strange room indeed. The walls, ceiling and floor are 
+  			made entirely of glass, through	which strange kaleidoscopic images can be seen. 
+  			There is an archway south, while to the north is a stone passage, illuminated by
+  			a strange red glow.",
+  		n_to lake,
+  		s_to star_chamber,
+  has	light;
+
+Object	lake "The End"
+  with	description
+  			"You are standing on the shore of a lake. A lake of fire. The surface is covered 
+  			with flames. The heat is almost unbearable. The cave containing the lake goes much 
+  			further than your eye can see. The ceiling is low, and in places flames lick at 
+  			the stalactites. No paths around the lake can be seen, and the passage to the south 
+  			collapsed as you entered.",
+  		s_to kaleidoscope,
+  has	light;
+
+
+! ------------------------------------------------------------------------------
+!
+!  Chicken batteries and the giant parrot puzzle
+!
+! ------------------------------------------------------------------------------
+  
+Object  office "Office"
+  with	description
+  			"You are standing in a bare office area. There is no furniture, but there are signs 
+  			that a desk was once present. A sign on the wall proclaims the place as the offices 
+  			of 'The ACME Golden Egg Co.' There are some steps down to: 'THE COLLECTION AREA'. A 
+  			passage leads southeast. There is another exit west.",
+  		se_to batteries,
+  		w_to star_chamber,
+  		d_to bottom_of_stairs;
+  		
+Object	batteries "Chicken Batteries"
+  with	description
+  			"You are standing in the chicken batteries. The corridor you are standing in is 
+  			walled with small cramped wire cages. A passage leads into an office northwest. There 
+  			is a large room east.",
+  		e_to cage_room,
+  		nw_to office;
+  		
+Object	cage_room "Giant Cage"
+  with	description
+  			"You are standing in a large room with metal walls. A huge bird cage stands in one 
+  			corner, its steel bars bent apart. The only clue is a sign hanging above the cage 
+  			which reads:
+  			^'Norwegian Blue - (Pythonicus Humorous)'^
+  			Passages lead east and west to the chicken batteries",
+  		e_to anteroom,
+  		w_to batteries;
+  		
+Object	anteroom "Ante-room"
+  with	description
+  			"You are in a small ante-room. It has been wallpapered, very badly indeed. There is 
+  			damp creeping up the walls as well. A doorway leads west into what looks like a metal 
+  			room. There is an archway in the southeast corner leading out to a courtyard.",
+  		se_to courtyard_nw,
+  		w_to cage_room;
+
+Object	-> display_case "glass display case"
+  with	name 'glass' 'display' 'case' 'box',
+  		description "It is similar to those found in museums, and about 2 feet across.",
+  		initial "At one side of the room stands an orante display case.",
+  has	static container transparent openable locked;
+
+Gauntlet -> -> right_gauntlet "Right Gauntlet of Power"
+  with description "Apparently made from burnished steel, you sense a steady vibration from within. It seems a natural fit for your right hand.",
+       name 'right';
+
+  		
+Object	bottom_of_stairs "Bottom of the Stairs"
+  with	description
+  			"You are standing at the bottom of a short flight of stairs which appear to lead up to 
+  			some sort of office area. Down here, however, it is dark and smelly. You can just make 
+  			out an open area southeast, from which clucking noises can be heard.",
+  		se_to underneath_batteries,
+  		u_to office;
+  		
+Object	underneath_batteries "Below the Chicken Batteries"
+  with	description
+  			"You are standing below the chicken batteries. Rows of cages hang above you, with a 
+  			walkway running through the centre.	Most are empty but a few of them still contain birds. 
+  			The floor is white with dung and feathers, which drop from above. You can go northwest.",
+  		nw_to bottom_of_stairs;
+
+
+! ------------------------------------------------------------------------------
+!
+!  Courtyard, spaceship and rhino puzzle
+!
+! ------------------------------------------------------------------------------
+  		
+Object	courtyard_ne "Courtyard Northeast"
+  with	description
+  			"You are standing in the northeast corner of an ornate courtyard. There is an archway
+  			in the east wall. It is very elaborately carved with many different scenes from great
+  			histories. All very pretentious, if you ask me. Anyway, beyond the arch, a flight of 
+  			spiral stairs is visible.",
+  		e_to marble_tower,
+  		s_to courtyard_se,
+  		sw_to courtyard_sw,
+  		w_to courtyard_nw,
+  		in_to spaceship,
+  has	light;
+ 
+ Object	courtyard_nw "Courtyard Northwest"
+   with	description
+   			"You are in the northwest corner of an ornate courtyard. The walls rise high above you, 
+   			and a small patch of sky is just visible. A passage leads northwest through a carved arch.",
+   		e_to courtyard_ne,
+   		se_to courtyard_se,
+   		s_to courtyard_sw,
+   		nw_to anteroom,
+  		in_to spaceship,
+  has	light;
+ 
+ Object	courtyard_se "Courtyard Southeast"
+   with	description
+   			"You are standing in the southeast corner of an ornate courtyard. The only feature
+   			in this corner of the courtyard is the poster stuck on the south wall. It reads:^
+   			~Machines out! Leave the thinking to us! Support the A.U.P.S.L.O.T.P~",
+   		n_to courtyard_ne,
+   		w_to courtyard_sw,
+   		nw_to courtyard_nw,
+  		in_to spaceship,
+  has	light;
+ 
+ Object	courtyard_sw "Courtyard Southwest"
+   with	description
+   			"You are standing in the southwest corner of an ornate courtyard. The flagstones 
+   			here could really do with a bit of attention.*^^
+   			*This last statement is in no way intended to give a hint. It is purely for atmosphere.
+   			^Thank You.",
+   		n_to courtyard_nw,
+   		ne_to courtyard_ne,
+   		e_to courtyard_se,
+  		in_to spaceship,
+  has	light;
+   		
+ Object	spaceship "Inside the ship"
+   with	description
+   			"You are standing inside the spaceship. The walls are covered with flashing indicator 
+   			lights and computer screens. In one corner there is an alien, sitting in some form of chair.
+   			It is hunched over a video screen, attacking the controls with all five arms. It is
+   			playing 'Human Invaders'. There is an open hatch south.",
+   		s_to courtyard_ne,
+   		out_to courtyard_ne,
+  has	light;
+ 
+ Object	marble_tower "Marble Tower"
+   with	description
+   			"You are standing at the base of a flight of marble stairs. The steps lead up to a tower 
+   			of some kind. The steps are well made, carved out of shiny marble. Very extravagant for a 
+   			flight of stairs, but if you can afford it... There is a carved archway in the west wall,
+   			through which an open courtyard is visible.",
+   		w_to courtyard_ne,
+   		u_to battlements;
+ 
+ Object	battlements "Tower Battlements"
+   with	description
+   			"You are standing on the castle battlements, overlooking the forest. They are 
+   			constructed	with jet black marble blocks. The view from up here is tremendous. 
+   			You see the great forest stretching out into the distance, and, beyond that, the
+   			glittering waters of the gulf of Erdi, and other such irritating bits of metaphysics.",
+   		d_to marble_tower,
+   		before [;
+   			Jump:
+   				PlayerTo(midair);
+				"You cast yourself recklessly over the battlements!";
+		],
+  has	light;
+		
+Object	midair "Mid-Air"
+  with	description
+  			"You are falling through the air at high speed, heading toward certain doom!",
+  		 d_to "No problem.",
+  		 in_to balcony,
+  		 cant_go "(With apologies to ~Spellbreaker~) Down seems more likely.",
+  has	light;
+
+Object	balcony "Balcony"
+  with	description
+  			"You are standing on a balcony overlooking the forest. From here you can see the clearing with the old 
+  			cottage, and other such landmarks of your travels. The balcony itself is elegantly carved, and is
+  			more decorational than practical. There is a dark room to the north.",
+  		n_to black_room,
+  has	light;
+
+Object	black_room "Blackness"
+  with	description
+  			"You are standing in a jet black room. Not just black, but BLACK. Yep, spell it. B L A C K. 
+  			This room is so black, it isn't even dark black. This place makes black look white. Unfortunately,
+  			apart from being black (yes BLACK), there isn't a lot else you can say about it. Oh, and it's
+  			black. The room opens on to a balcony south, and a passage leads north.",
+  		n_to desert,
+  		s_to balcony;
+  		
+  		
+! ------------------------------------------------------------------------------
+!
+!  High Street, the Bank and the Storm Room
+!
+! ------------------------------------------------------------------------------
+  		
+Object	smooth_corridor "Smooth Corridor"
+  with	description
+  			"You are standing in a smooth corridor, running east to west. The passage leads 
+  			off into a large chamber east, while to the west it splits into two. You have a 
+  			choice of northwest and southwest",
+  		e_to star_chamber,
+  		sw_to fire_prevention,
+  		nw_to big_corridor;
+
+Object -> fire_door "fire door"
+ with	name 'fire' 'door',
+	description "Sturdy.",
+	initial "A large fire door blocks the northwest exit.",
+	before [;
+		Attack:
+			if (second == axe) {
+				move fire_wood to parent(self);
+				remove self;
+				"You smash the door to fire wood. Feel better now?";
+			} else {
+				"Your attempts to damage the door are futile.";
+			}
+	],
+ has static door openable lockable locked;
+ 
+Object fire_wood "pile of fire wood"
+with	name 'pile' 'bundle' 'fire' 'wood',
+	description "The remains of the fire door. It looks, perhaps unsurprisingly, flamable.",
+	heat 0,
+	alight false,
+	invent [;
+		if (inventory_stage == 1 && self in player) {
+			print "a bundle of fire wood";
+			rtrue;
+		}
+	],
+	before [;
+		Burn:
+			if (self in player)
+				"Setting fire to something you're holding would not be a good idea.";
+		self.alight = true;
+		StartDaemon(self);
+		"The wood bursts into flames.";
+	],
+	daemon [;
+		if (self.alight == false)
+			rtrue;
+		if (++self.heat == 12) {
+			if (self in location) {
+				deadflag = true;
+				"It got so hot in here, you melted.";
+			} else {
+				move pile_of_ash to parent(self);
+				remove self;
+			}
+		} else {
+			switch (self.heat) {
+				3:	"^It's getting quite warm.";
+				6:	"^It's getting very hot indeed.";
+				8:	"^It is like an inferno in here.";
+				9:	if (self in ice_wall) {
+						move ice_hole to parent(self);
+						"^You can see that a hole has been melted in the ice wall.";
+					}
+			}
+		}
+	];
+
+Object pile_of_ash "pile of ash"
+	with	name 'pile' 'of' 'ash';
+
+Object ice_hole "hole in the ice wall"
+	with name "hole";
+
+Object	fire_prevention "Fire Prevention Room"
+  with	description
+  			"You are standing in a square room. The walls are made of asbestos for some reason. 
+  			Looking around, you find one. A sign states that this is the:
+  			^    ~FIRE PREVENTION ROOM~.^
+  			Corridors lead out of the room northeast and east.",
+  		ne_to smooth_corridor,
+  		e_to armoury,
+  		s_to wooden_cabinet;
+
+Object -> axe "heavy fireman's axe"
+	with name 'heavy' 'fireman' 'fireman^s' 'axe';
+
+Object -> wooden_cabinet "large wooden cabinet"
+	with	name 'large' 'wooden' 'cabinet' 'opaque' 'glass',
+		when_closed "A large wooden cabinet is fixed to the south wall. It is about six feet high and three feet across. The front of the cabinet is covered with a sheet of opaque glass. Above it is a laminated plaque, embossed upon which are the words: 'In case of fire, Break glass'",
+		when_open "A large wooden cabinet is fixed to the south wall. It's glass covering has been shattered, and you could walk through to another room behind it.",
+		door_to wooden_room,
+		door_dir s_to,
+		before [;
+			Attack:
+				give self open;
+				print "You break the glass and a tall fireman jumps out! ";
+				"'Where's the fire then?', he says. Then he wanders off looking glum.";
+		],
+	has	static door;
+
+Object  armoury "Armoury"
+  with	description
+  			"You are standing in the armoury. Suits of armour in glass cases line the walls. 
+  			Some are ornate, pieces of superb craftsmanship, others merely functional. Swords, 
+  			polearms, bows and other such instruments of death cover the high walls. There is 
+  			a passage leading west.",
+  		w_to fire_prevention;
+
+Gauntlet -> left_gauntlet "Left Gauntlet of Power"
+  with	description "Apparently made from burnished steel, you sense a steady vibration from within. It seems a natural fit for your left hand.",
+      	name 'left',
+      	initial "Hanging from a hook, high on the north wall, is the left Gauntlet of Power",
+      	hooked true,
+      	before [;
+      		Take:
+      			if(self.hooked) {
+      				if (player notin ladder) "The Gauntlet is out of reach.";
+      				"The Gauntlet is still too high to reach. You didn't think it was going to be that easy, did you?";
+  				}
+  		];
+  		
+Object	wooden_room "Polished Wood"
+  with	description
+  			"You are standing in a square room with walls and a floor made of wood. All the wood 
+  			has been varnished and polished until it almost reflects as well as a mirror. Passages 
+  			lead north, south and west.",
+  		n_to fire_prevention,
+  		s_to change_of_scene,
+  		w_to bouncy_room;
+  		
+Object	bouncy_room "Over-Inflated"
+  with	description
+  			"Weeee! Wehey!! Woops!! Weee.....Ah, sorry about that, got a bit carried away. Why ? Well...^
+  			You are standing (or bouncing), on a giant inflated bag, like something from a fairground. 
+  			There is a passageway east.
+  			^Bounce, bounce!! Fun, isn't it!",
+  		n_to granite_corridor,
+  		e_to wooden_room;
+  		
+Object	granite_corridor "Granite Corridor"
+  with	description
+  			"You are standing in a granite corridor. The standard of the workmanship here is very 
+  			low indeed. Set into the east wall is a barred window. The corridor exits to the south 
+  			and continues on north. Rumbling noises can be heard from that direction.",
+  		n_to storm_room,
+  		s_to bouncy_room;
+  		
+Object	storm_room "The Storm Room"
+  with	description
+  			"You are standing in a very large cave. Black clouds swirl around you with great menace.
+  			Lightning lashes out violently, and a clap of thunder swiftly follows. The place is 
+  			alive with electricity. More lightning strikes near you. There is an exit from the
+  			room south.",
+  		s_to granite_corridor;
+
+Object	change_of_scene "Change of Scene"
+  with  description
+  			"You are standing in a very odd corridor. The northern end is constructed of polished 
+  			wood, while to the south the passage walls are ordinary bricks and mortar. Very 
+  			interesting....but stupid! Anyway, the south end of the corridor leads out into a street.",
+  		n_to wooden_room,
+  		s_to outside_bank;
+
+Object	outside_bank "On the High Street"
+  with	description
+  			"By the look of things, there is a town somewhere that is missing part of it's high street. 
+  			The only building that has been borrowed is on the east side of the street. A sign 
+  			proclaims it as: ~Yalcrabs Bank~. Its doors are open (On a Saturday!!) There is a 
+  			corridor to the north and the street ends in a dead end to the south.",
+  		n_to change_of_scene,
+  		e_to inside_bank,
+  		s_to dead_end,
+  has	light;
+
+Object	inside_bank "Inside the Bank"
+  with	description
+  			"You are standing inside a branch of Yalcrab's Bank. The place is a mess. Bits of 
+  			furniture are scattered everywhere. Most of the advertising displays have been torn 
+  			to pieces. It looks like evidence of a riot. You can go northeast through a gap
+  			in the serving counter, or the street is west.",
+  		ne_to behind_counter,
+  		w_to outside_bank,
+  has	light;
+  		
+Object	behind_counter "Behind the Counter"
+  with	description
+  			"You are behind the counter in the bank. The damage from the riot is very bad back 
+  			here. The cashiers draws have been rifled, and all the money is gone. The gap in the 
+  			counter is southwest, and appears to be the only exit.",
+  		e_to vault,
+  		sw_to inside_bank,
+  has	light;
+
+Object	vault "In the Vault"
+  with	description
+  			"You are standing inside a huge walk-in bank vault. The walls are covered with metal 
+  			safety(!) deposit boxes. They all been forced open, with a crowbar-like instrument. 
+  			There is a giant metal door to the west. It stands open.",
+  		w_to behind_counter,
+  has	light;
+
+Object	dead_end "Dead End"
+  with	description
+  			"You are at a dead end. A section of town street leads off to the north. A flight of 
+  			stone steps leads down through a hole in the floor. There isn't much more I can say 
+  			about this place, so I won't say anything.",
+  		n_to outside_bank,
+  		d_to wine_cellar,
+  has	light;
+
+Object	wine_cellar "Wine Cellar"
+  with	description
+  			"You are standing in the centre of a large wine cellar. The air is thick with the 
+  			musty smell of alcohol. The walls are covered with wine racks, all of which are empty.
+  			The only exit is up a flight of stairs to a hole in the ceiling.",
+  		u_to dead_end;
+
+
+! ------------------------------------------------------------------------------
+!
+!  The Giant's Kitchen
+!
+! ------------------------------------------------------------------------------
+
+Object	big_corridor "Expansive Corridor"
+  with	description
+  			"You are standing in a corridor that does odd things to your eyes. It appears to be a 
+  			normal household corridor, with white skirting-boards, flock wallpaper and an Artex 
+  			ceiling. But, as it heads northwest, it expands, both horizontally and vertically, 
+  			until the door at the end is fully thirty feet wide by one hundred feet high. There 
+  			is a small exit	to the southeast and a ten foot mouse hole west.",
+  		se_to smooth_corridor,
+  		w_to "Death by giant mouse awaits once the coding is done.",
+  		nw_to kitchen_se;
+  		
+Object	kitchen_ne "Kitchen Northeast"
+  with	description
+  			"You are in the northeast corner of a giant kitchen.",
+  		s_to kitchen_se,
+  		sw_to kitchen_sw,
+  		w_to kitchen_nw,
+  has	light;
+  		
+Object	kitchen_nw "Kitchen Northwest"
+  with	description
+  			"You are standing in the northwest corner of a giant kitchen. In the western wall the 
+  			massive shape of a door looms above you. The door appears to be made of oak, the size 
+  			of the tree it came from doesn't bear imagining. The door is closed, and the judging 
+  			by the size of it, it's going to stay that way.",
+  		e_to kitchen_ne,
+  		se_to kitchen_se,
+  		s_to kitchen_sw,
+  		w_to larder,
+  has	light;
+
+Object	kitchen_se "Kitchen Southeast"
+  with	description
+  			"You are standing in what appears to be the southeast corner of a truly enormous kitchen. 
+  			It would seem that everything is ten times its normal size. There is a huge kitchen 
+  			table in the centre of the room and it looks like you could climb up one of the legs.",
+  		n_to kitchen_ne,
+  		se_to big_corridor,
+  		w_to kitchen_sw,
+  		nw_to kitchen_nw,
+  		u_to kitchen_table,
+  has	light;
+
+Object	kitchen_sw "Kitchen Southwest"
+  with	description
+  			"You are standing in the southwest corner of a giant kitchen.",
+  		n_to kitchen_nw,
+  		ne_to kitchen_ne,
+  		e_to kitchen_se,
+  has	light;
+
+Object	kitchen_table "Kitchen Table"
+  with	description
+  			"You are on a vast expanse of table in a giant kitchen. It must be the size of a 
+  			football pitch, at least. You could slide down one of the table legs, or you might 
+  			be able to shin up the side of the tin of treacle you are standing by.",
+  		u_to treacle_tin,
+  		d_to kitchen_se,
+  has	light;
+
+Object	treacle_tin "On the Rim"
+  with	description
+  			"You are standing on the rim of a giant tin of treacle. You find that your footing 
+  			is solid, if a little sticky. You can clamber down the side of the tin, or one jump 
+  			will take you boldly were no sentient being has gone before. And it might even
+  			get you 8.9 for technical merit.",
+  		d_to kitchen_table,
+  		before[;
+  			Jump:
+  				print "^Plop!^";
+  				PlayerTo(in_treacle,2);
+  				rtrue;
+  		],
+  has	light;
+
+Object	in_treacle "Sticky Situation"
+  with	description
+  			"You are swimming in treacle. There isn't really much more I can say, is there?",
+  		u_to treacle_tin,
+  has	light;
+
+Object	larder "Giant Larder"
+  with	description
+  			"You are standing in what appears to be a giant larder. The way out is east, by 
+  			crawling under the huge door. There are shelves above you, cluttered with jars, 
+  			bottles, and many other such containers. But even the lowest of these is beyond
+  			your reach.",
+  		e_to kitchen_nw,
+  		u_to larder_shelf;
+
+Object	larder_shelf "Larder Shelf"
+  with	description
+  			"You are standing a high shelf in a giant larder. You are in the midst of a good 
+  			dozen jars of various preserves of one kind or another. The size of the chunks in 
+  			the marmalade is beyond belief! The only way down is via a ladder.",
+  		d_to larder;
+
+
+! ------------------------------------------------------------------------------
+!
+!  The Ice cavern and the river
+!
+! ------------------------------------------------------------------------------
+
+Object	ice_cavern "Ice Cavern"
+  with	description
+  			"You appear to be standing in some kind of ice cavern. The walls and ceiling are 
+  			covered in a thick layer of ice. The floor is very slippery. The cavern runs 
+  			southeast to northwest.",
+  		se_to star_chamber,
+  		nw_to ice_wall;
+
+Object	ice_wall "Ice Wall"
+  with	description
+  			"The ice cavern ends here in a dead end. You find yourself facing a blank, 
+  			featureless ice wall. The cavern winds away back to the southeast.",
+  		n_to brick_junction,
+  		se_to ice_cavern;
+
+Object	brick_junction "Brick Junction"
+  with	description
+  			"You are standing at a junction of passages. The corridors are all constructed 
+  			of red bricks. You can go north, east and west. There is a hole in the southern 
+  			wall, from which emanates a draught of cold air.",
+  		n_to old_bricks,
+  		e_to bare_room,
+  		s_to ice_wall,
+  		w_to riverbank;
+  		
+Object	old_bricks "Old Bricks"
+  with	description
+  			"You are in a brick passage that ends in a wall to the north. The corridor is quite 
+  			well constructed, but must be pretty old, as here and there, bricks are starting to 
+  			disintegrate. There is also writing on the walls. You can go south.",
+  		n_to really_dead_end,
+  		s_to brick_junction;
+
+Object	-> 	ladder "ladder"
+  with	name 'ladder' 'steps' 'step',
+  		description "Eight feet long.",
+  		initial "A discarded ladder lies nearby.",
+  has	enterable supporter;
+  
+Object	really_dead_end "Really Dead End"
+  with	description
+  			"You are at a dead end. So dead in fact, that all my literary inspiration has died 
+  			with it, and I can't think of anything to say except: The only way back is through 
+  			a hole in the south wall.",
+  		s_to old_bricks;
+
+Object	riverbank "Riverbank"
+  with	description
+  			"You are standing on the bank of a river. It flows from an entry point in the north
+  			wall of the cave to a similar hole in the southern wall. The flow is quite fast, and
+  			swimming could be a bit dangerous unless you are a strong swimmer. A passage leads
+  			back east.",
+  		e_to brick_junction,
+  		w_to sandbank;
+
+Object	sandbank "Sandbank"
+  with	description
+  			"You are standing on a sandbank in the middle of a river. You don't feel too safe, as 
+  			the bank isn't that big, and the river flows past at quite a rate. It's a short, if 
+  			dangerous, swim back to the shore.",
+  		e_to riverbank;
+
+
+! ------------------------------------------------------------------------------
+!
+!  The dragon and lava pit
+!
+! ------------------------------------------------------------------------------
+
+Object	bare_room "Fire Bricks"
+  with	description
+  			"You are in a bare room. There is no furniture at all. The walls haven't been decorated, 
+  			and the bricks are visible. It appears that the whole place is made of fire bricks. Walls, 
+  			floor and ceiling are all a reddish-brown colour. A passageway leads west, while another 
+  			goes northeast. There is a definate increase in temperature in that direction.",
+  		ne_to cone,
+  		w_to old_bricks;
+
+Object	cone "Conical Chamber"
+  with	description
+  			"You have entered a chamber that is constructed entirely from fire bricks. The room is of a 
+  			circular shape, about forty feet in diameter. The walls rise up, meeting to form a cone shaped
+  			roof. The place is tremendously hot. There are passages running southwest, east,south and north.
+  			Most of the heat seems to eminate from the northern passage.",
+  		n_to lava_pit,
+  		s_to forge,
+  		sw_to bare_room;
+
+Object	lava_pit "Lava Pit"
+  with	description
+  			[;
+  			if (solid)
+  				"The reason for the heat here is obvious. You are standing in a cave carved out of igneous rock.
+  				In the centre of the cave is a lava pit. The heat is intense. The lava bubbles and boils, and every 
+  				so often spits globs of molten rock into the air. The walls of the cave are covered with strange
+  				flowing formations of rock, from times when the pit has overflowed. A passage leads to a cooler area south.";
+  			"You are standing in a cave carved out of igneous rock. In the centre of the cave is a lava pit. 
+  			It is completely solid, as if the lava had stopped flowing and it had cooled. The cave is
+  			covered with strange flowing formations of rock, from times when the pit had overflowed. A 
+  			passage leads south.";
+  			],
+  		s_to cone,
+  		solid false,
+  has	light;
+
+Object	forge "Blacksmith's Forge"
+  with	description
+  			"You are standing in a deserted blacksmiths forge. Various kinds of equipment used for shaping
+  			metal hang on the walls. In the distance there is the sound of air being pumped into the forge
+  			by bellows. The fire is burning high, but the heat in here is no comparison to the red brick
+  			chamber you have just left. That room is to the north.",
+  		n_to cone,
+  has	light;
+
+
+! ------------------------------------------------------------------------------
+!
+!  Harbour, library and cafeteria
+!
+! ------------------------------------------------------------------------------
+
+Object	harbour "Harbour"
+  with	description
+  			"You are standing in a harbour on the shore of a huge inland sea. It streches out
+  			as far as the eye can see. The salt water laps quietly at the stone walls of the 
+  			harbour. A stone jetty winds off to the north. A road winds away east entering a 
+  			cave in the hillside.",
+  		n_to jetty,
+  		e_to fresco_junction,
+  		sw_to star_chamber,
+  has	light;
+
+Object	jetty "Jetty"
+  with	description
+  			"You are standing at the end of a solid stone jetty. The inland sea streches out beyond
+  			your vision. The jetty leads back to the harbour south. Moored on the eastern side of 
+  			the jetty is a medium sized galleon. It looks deserted. The galleon can be reached by
+  			means of a gangplank to the east.",
+  		e_to deck,
+  		s_to harbour,
+  has	light;
+  		
+Object	deck "On Deck"
+  with	description
+  			"You are standing on the deck of a Tudor galleon. The mast rises from the deck and 
+  			pierces the sky like a needle (Phew! That was poetic!). There is an open doorway to the
+  			north leading to the stern cabins. A gangplank leads off the ship to a jetty west.The
+  			whole ship is strangely deserted.",
+  		n_to cabin,
+  		w_to jetty,
+  has	light;
+  		
+Object	cabin "Captain's Cabin"
+  with	description
+  			"You are standing in a well furnished cabin at the stern of the ship. Judging by the
+  			quality of the furnishings, it in all probability belongs to the captain. The place is
+  			hung with silks of various shades, and the cushions are covered in velvet. There is an
+  			open door leading out onto the deck south.",
+  		e_to locker,
+  		s_to deck;
+  		
+Object	locker "Ship's Locker"
+  with	description
+  			"You are standing in the ship's locker. The walls are made of planks. There are a few empty
+  			shelves, most of them gathering dust. It is very cramped. Why you should want to come in 
+  			here is quite beyond me.",
+  		w_to cabin,
+  		out_to cabin;
+  		
+Object	fresco_junction "Junction"
+  with	description
+  			"You are standing at a junction of two corridors. The walls are covered with beautiful
+  			frescos. They show scenes from the Trojan War. Unfortunately, some vandal has scrawled 
+  			graffitti all over them. The corridor runs from east to west.",
+  		e_to cafeteria,
+  		s_to library,
+  		w_to harbour;
+  		
+Object	library "Old Library"
+  with	description
+  			"You are standing in an old library. The walls are covered with shelves, all weighed down
+  			with old grimores. The dust is thick, and it is obvious that many of the volumes haven't 
+  			been read for years. There is an exit through a door in the north wall. The library opens
+  			out into another room east.",
+  		n_to fresco_junction,
+  		e_to octagonal_room;
+  		
+Object	octagonal_room "Octagonal Room"
+  with	description
+  			"You are in an octaganally shaped room. The east wall is taken up with a large viewing window,
+  			which is open. There is a stone pillar in the very centre of the room, and the walls are decorated
+  			with murals of various famous mountaineering exploits.",
+  		w_to library,
+  		d_to cliff_face,
+  has	light;
+  		
+Object	cliff_face "Cliff Face"
+  with	description
+  			"You are dangling on the end of a rope which is hanging from a window some twenty feet above you.
+  			All you can see besides the mile long drop below you is a blank cliff face.",
+  		u_to octagonal_room,
+  has	light;
+  		
+Object	cafeteria "Cafeteria"
+  with	description
+  			"You are in a cafeteria. The floor is tiled and is so clean you could eat off it. This shouldn't
+  			be nessecary, however, as there are plenty of tables. They are arranged in neat rows, and all 
+  			have four chairs. A serving counter runs along the north wall, and the kitchen is visible behind it.
+  			There is a gap in the counter northeast. A passage leaves the room west, while it also continues east.",
+  		ne_to kitchen,
+  		w_to fresco_junction,
+  has	light;
+  		
+Object	kitchen "Kitchen"
+  with	description
+  			"You are standing in the kitchen. Everywhere is very clean. There are large pieces of cooking
+  			equipment all over the place. Big stoves, ovens and fridges* take up lots of room. There is 
+  			no food to be found anywhere, however. There is a gap in the serving counter southwest.
+  			^^*It is to be pointed out that these fridges, though large, bear no relation whatsoever to
+  			a certain Mr. William Perry of the Chicago Bears football team. Thank you.",
+  		sw_to cafeteria,
+  has	light;
+  		
+
+! ------------------------------------------------------------------------------
+!
+!  The desert and ancient tomb
+!
+! ------------------------------------------------------------------------------
+
+Object	desert "Featureless Desert"
+  with	description
+  			"You are standing in a completely featureless expanse of desert. The sea of sand streches for
+  			miles, further than the horizon in all directions. There is only one feature that grabs your
+  			attention, however. That is a small pile of rubble some way to the north. It appears to be a
+  			ruin of some kind.",
+  		n_to ruins,
+  		ne_to desert110,
+  		e_to desert109,
+  		se_to desert107,
+  		s_to desert105,
+  		sw_to desert110,
+  		w_to desert108,
+  		nw_to desert107,
+  has	light;
+
+Object	ruins "Ancient Ruins"
+  with	description
+  			"You are standing by a pile of huge sandstone blocks. At one time they must have formed some
+  			sort of building, but now they resemble a rockery. They stick out of the sand at odd angles,
+  			most of them partially buried. There are no obvious pathways leading away into the desert,
+  			just a vast exapanse of trackless sand.",
+  		n_to desert105,
+  		ne_to desert111,
+  		e_to desert110,
+  		se_to desert109,
+  		s_to desert,
+  		sw_to desert108,
+  		w_to desert 107,
+  		nw_to desert106,
+  		d_to treasure_chamber,
+  has	light;
+
+Object	desert105 "Trackless Desert"
+  with	description
+  			"You are standing in a vast expanse of trackless desert.",
+  		n_to desert,
+  		ne_to desert107,
+  		e_to desert111,
+  		se_to desert110,
+  		s_to ruins,
+  		sw_to desert107,
+  		w_to desert106,
+  		nw_to desert110,
+  has	light;
+
+Object	desert106 "Trackless Desert"
+  with	description
+  			"You are standing in a vast expanse of trackless desert.",
+  		n_to desert108,
+  		ne_to desert,
+  		e_to desert105,
+  		se_to ruins,
+  		s_to desert107,
+  		sw_to desert110,
+  		w_to desert111,
+  		nw_to desert109,
+  has	light;
+
+Object	desert107 "Trackless Desert"
+  with	description
+  			"You are standing in a vast expanse of trackless desert.",
+  		n_to desert106,
+  		ne_to desert105,
+  		e_to ruins,
+  		se_to desert,
+  		s_to desert108,
+  		sw_to desert109,
+  		w_to desert110,
+  		nw_to desert111,
+  has	light;
+
+Object	desert108 "Trackless Desert"
+  with	description
+  			"You are standing in a vast expanse of trackless desert.",
+  		n_to desert107,
+  		ne_to ruins,
+  		e_to desert,
+  		se_to desert105,
+  		s_to desert106,
+  		sw_to desert111,
+  		w_to desert109,
+  		nw_to desert110,
+  has	light;
+
+Object	desert109 "Trackless Desert"
+  with	description
+  			"You are standing in a vast expanse of trackless desert.",
+  		n_to desert110,
+  		ne_to desert107,
+  		e_to desert108,
+  		se_to desert106,
+  		s_to desert111,
+  		sw_to desert105,
+  		w_to desert,
+  		nw_to ruins,
+  has	light;
+
+Object	desert110 "Trackless Desert"
+  with	description
+  			"You are standing in a vast expanse of trackless desert.",
+  		n_to desert111,
+  		ne_to desert106,
+  		e_to desert107,
+  		se_to desert108,
+  		s_to desert109,
+  		sw_to desert,
+  		w_to ruins,
+  		nw_to desert105,
+  has	light;
+
+Object	desert111 "Trackless Desert"
+  with	description
+  			"You are standing in a vast expanse of trackless desert.",
+  		n_to desert109,
+  		ne_to desert108,
+  		e_to desert106,
+  		se_to desert107,
+  		s_to desert110,
+  		sw_to ruins,
+  		w_to desert105,
+  		nw_to desert,
+  has	light;
+
+Object	treasure_chamber "Treasure Chamber"
+  with	description
+  			"You are standing in what appears to be the treasure chamber of an Egyptian tomb. Appears to be, 
+  			as there isn't any treasure any to be found. The place has been looted long ago, and only a few 
+  			broken pots remain, along with some reeds. The walls show many paintings, depecting the great
+  			burial processions of the old Pharaohs. A flight of steps lead up into daylight.",
+  		n_to burial_chamber,
+  		u_to ruins,
+  has	light;
+
+Object	burial_chamber "Burial Chamber"
+  with	description
+  			"You are standing in the burial chamber of the tomb. It is about fifteen feet square, 
+  			the ceiling only seven feet from the floor. The walls are covered in white plaster which
+  			has been shaped into various drawings, along with thousands of hieroglyphics. An open doorway
+  			leads out into the treasure chamber to the south.",
+  		s_to treasure_chamber;
+
+
+! ------------------------------------------------------------------------------
+!
+!  UNUSED LOCATIONS from original map
+!
+! ------------------------------------------------------------------------------
+
+!Object	new_junction "Three Way Junction"
+!  with	description
+!  			"You are standing at a junction of three corridors. To the west, a passageway leads back 
+!  			into a cafateria. To the south, a long corridor leads out into distant daylight. While to
+!  			the north the passage curves away westwards, and there is a definate increase in temperature.",
+!  		n_to cone,
+!  		s_to courtyard_ne,
+!  		w_to cafeteria;
+!
+!Object	blocked_corridor "Blocked Corridor"
+!  with	description
+!  			"You walk along the corridor, only to be confronted with a solid brick wall blocking 
+!  			the corridor where it should carry on running northeast. A large sign on the wall reads:
+!  			^        CORRIDOR CLOSED
+!  			^          DUE TO GAME
+!  			^        REDEVELOPMENT
+!  			^   S.C.L apologize for any
+!  			^    inconvenience caused.
+!  			^The corridor leads back to the southwest.",
+!  		ne_to memory,
+!  		sw_to star_chamber;
+!
+!Object	memory "Empty Memory"
+!  with	description
+!  			"You are standing in the empty memory of the computer. There is an exit southwest, 
+!  			and a sign on the wall says:
+!  			^^Well, that was a waste of a hand grenade, wasn't it!^^",
+!  		sw_to blocked_corridor;
+
+
+! ------------------------------------------------------------------------------
+!
+!  Routines - Initialise etc.
+!
+! ------------------------------------------------------------------------------
+
+[ Initialise;
+	location = stone_steps;
+	move lamp to player;
+	give lamp light;
+	
+	"^^^Your family tortured, your people starved, years of repression and fear. It
+	stops today! Your resolve to find your way into the evil necromancer's castle
+	and bring his tyranny to and end is barely shaken by the enormity of the task
+	that awaits you...^";
+	];
+
+	
+! ------------------------------------------------------------------------------
+!
+!  Grammar and new verbs.
+
+! ------------------------------------------------------------------------------
+
+Include "Grammar";
+
+! The spinning wheel
+
+[ SpinSub;
+	if (spinning_wheel notin location)
+		"You'll need the proper equipment to attempt that.";
+	"That's hardly the appropriate material.";
+];
+
+! Magic Words
+
+[ JezebelSub;
+	"Nothing unusual happens.";
+];
+
+[ IfyfafkSub;
+	"You barely get your tongue around it. Nothing at all happens.";
+];
+
+
+! Other assorted bits
+
+[ ShoutSub;
+	"You are now a little hoarse. (Possible a palomino)";
+];
+
+[AttackWithSub;
+	"Violent little sod, aren't you?";
+];
+
+
+Verb 'spin' 'weave'
+	* noun 'on' noun		-> Spin 
+	* noun 'with' noun		-> Spin;
+
+Verb 'jezebel'
+	*						-> Jezebel;
+
+Verb 'ifyfafk'
+	* 						-> Ifyfafk;
+
+Extend only 'shout' replace
+	*						-> Shout
+	*	'for' 	topic		-> Shout;
+
+Extend only 'tie' 'attach' 'fasten' replace
+	* held 'to' noun		-> Tie;
+
+Extend 'attack'
+	* noun 'with' held		-> Attack;
+
