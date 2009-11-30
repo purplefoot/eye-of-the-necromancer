@@ -1151,20 +1151,23 @@ Object	smooth_corridor "Smooth Corridor"
   with	description
   			"You are standing in a smooth corridor, running east to west. The passage leads 
   			off into a large chamber east, while to the west it splits into two. You have a 
-  			choice of northwest and southwest",
+  			choice of northwest and southwest.",
   		e_to star_chamber,
   		sw_to fire_prevention,
-  		nw_to big_corridor;
+  		nw_to fire_door;
 
 Object -> fire_door "fire door"
  with	name 'fire' 'door',
 	description "Sturdy.",
-	initial "A large fire door blocks the northwest exit.",
+	when_closed "A large fire door blocks the northwest exit.",
+	when_open "A battered wooden doorframe marks the northwest exit.",
+	door_to big_corridor,
+	door_dir nw_to,
 	before [;
 		Attack:
 			if (second == axe) {
 				move fire_wood to parent(self);
-				remove self;
+				give self open;
 				"You smash the door to fire wood. Feel better now?";
 			} else {
 				"Your attempts to damage the door are futile.";
@@ -1175,7 +1178,6 @@ Object -> fire_door "fire door"
 Object fire_wood "pile of fire wood"
 with	name 'pile' 'bundle' 'fire' 'wood',
 	description "The remains of the fire door. It looks, perhaps unsurprisingly, flamable.",
-	heat 0,
 	alight false,
 	invent [;
 		if (inventory_stage == 1 && self in player) {
@@ -1187,39 +1189,51 @@ with	name 'pile' 'bundle' 'fire' 'wood',
 		Burn:
 			if (self in player)
 				"Setting fire to something you're holding would not be a good idea.";
-		self.alight = true;
-		StartDaemon(self);
-		"The wood bursts into flames.";
+			print "The wood bursts into flames ";
+			remove self;
+			if (player in ice_wall) {
+				move blazing_fire to ice_wall;
+				StartDaemon(blazing_fire);
+				"and begins to burn rapidly. It must be the airflow in here.";
+			}
+			move pile_of_ash to location;
+			"but quickly fizzles out.";
+	];
+
+Object blazing_fire "blazing fire"
+	with name 'blazing' 'burning' 'fire' 'blaze',
+	initial "A pile of wood is burning, generating a lot of heat.",
+	heat 0,
+	before [;
+		Take: "Not without asbestos fingers.";
 	],
 	daemon [;
-		if (self.alight == false)
-			rtrue;
-		if (++self.heat == 12) {
-			if (self in location) {
+		self.heat++;
+		if (self in location) {
+			if (self.heat > 12) {
 				deadflag = true;
 				"It got so hot in here, you melted.";
 			} else {
-				move pile_of_ash to parent(self);
-				remove self;
-			}
-		} else {
-			switch (self.heat) {
-				3:	"^It's getting quite warm.";
-				6:	"^It's getting very hot indeed.";
-				8:	"^It is like an inferno in here.";
-				9:	if (self in ice_wall) {
-						move ice_hole to parent(self);
-						"^You can see that a hole has been melted in the ice wall.";
-					}
+				switch (self.heat) {
+					3:	"^It's getting quite warm.";
+					6:	"^It's getting very hot indeed.";
+					8:	"^It is like an inferno in here.";
+					9:	if (self in ice_wall) {
+							move ice_hole to ice_wall;
+							"^You can see that a hole has been melted in the ice wall.";
+						}
+				}
 			}
 		}
-	];
+	],
+	has static;
 
 Object pile_of_ash "pile of ash"
-	with	name 'pile' 'of' 'ash';
-
-Object ice_hole "hole in the ice wall"
-	with name "hole";
+	with	name 'pile' 'of' 'ash',
+	before [;
+		Take: "The ash runs through your fingers";
+	],
+	has static;
 
 Object	fire_prevention "Fire Prevention Room"
   with	description
@@ -1244,6 +1258,12 @@ Object -> wooden_cabinet "large wooden cabinet"
 			Attack:
 				give self open;
 				print "You break the glass and a tall fireman jumps out! ";
+				if (blazing_fire in ice_wall) {
+					StopDaemon(blazing_fire);
+					remove blazing_fire;
+					move pile_of_ash to ice_wall;
+					"He sniffs the air and then runs off to the northeast.";
+				}
 				"'Where's the fire then?', he says. Then he wanders off looking glum.";
 		],
 	has	static door;
@@ -1482,14 +1502,35 @@ Object	ice_cavern "Ice Cavern"
   			covered in a thick layer of ice. The floor is very slippery. The cavern runs 
   			southeast to northwest.",
   		se_to star_chamber,
-  		nw_to ice_wall;
+  		nw_to [;
+			if (blazing_fire in ice_wall && blazing_fire.heat > 10)
+				"Blazing flames drive you back.";
+			return ice_wall;
+		];
 
 Object	ice_wall "Ice Wall"
   with	description
   			"The ice cavern ends here in a dead end. You find yourself facing a blank, 
   			featureless ice wall. The cavern winds away back to the southeast.",
-  		n_to brick_junction,
-  		se_to ice_cavern;
+  		se_to ice_cavern,
+		n_to [;
+			if (ice_hole in self)
+				return ice_hole;
+			return 0;
+		];
+
+Object ice_hole "hole in the ice wall"
+	with name 'ice' 'hole',
+	when_open "A large hole has been melted in the ice to the north.",
+	door_to [;
+		if (blazing_fire in parent(self)) {
+			"The raging flames bar your way.";
+		} else {
+			return brick_junction;
+		}
+	],
+	door_dir n_to,
+	has static door open;
 
 Object	brick_junction "Brick Junction"
   with	description
@@ -1934,10 +1975,6 @@ Include "Grammar";
 
 [ ShoutSub;
 	"You are now a little hoarse. (Possible a palomino)";
-];
-
-[AttackWithSub;
-	"Violent little sod, aren't you?";
 ];
 
 
