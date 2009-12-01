@@ -1,0 +1,4 @@
+Use this directory if you want to compile by hand rather than using the Inform7 IDE.
+
+Make sure you have the inform 6 complier in your path (Macports is good), and then
+run ./compile.sh. This will put the complied came in ./zcode.
